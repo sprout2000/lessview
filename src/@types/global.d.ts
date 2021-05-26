@@ -7,6 +7,10 @@ declare global {
 export interface Sandbox {
   mimecheck: (filepath: string) => Promise<boolean>;
 
+  motioncheck: (filepath: string) => Promise<number>;
+
+  motionAsDataURL: (filepath: string, motionStart: number) => Promise<string>;
+
   history: (filepath: string) => void;
 
   dirname: (filepath: string) => Promise<string>;
@@ -24,6 +28,9 @@ export interface Sandbox {
 
   menuPrev: (listener: () => Promise<void>) => Electron.IpcRenderer;
   removeMenuPrev: () => Electron.IpcRenderer;
+
+  menuMotion: (listener: () => Promise<void>) => Electron.IpcRenderer;
+  removeMenuMotion: () => Electron.IpcRenderer;
 
   menuRemove: (listener: () => Promise<void>) => Electron.IpcRenderer;
   removeMenuRemove: () => Electron.IpcRenderer;

@@ -90,6 +90,14 @@ export const createMenu = (
         },
         { type: 'separator' },
         {
+          id: 'motion',
+          label: i18next.t('motion'),
+          accelerator: 'M',
+          enabled: false,
+          click: (): void => win.webContents.send('menu-motion'),
+        },
+        { type: 'separator' },
+        {
           label: i18next.t('toggleFullscreen'),
           role: 'togglefullscreen',
         },

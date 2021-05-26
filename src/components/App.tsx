@@ -1,4 +1,10 @@
-import React, { useRef, useCallback, useState, useEffect } from 'react';
+import React, {
+  useRef,
+  useCallback,
+  useState,
+  useEffect,
+  createElement,
+} from 'react';
 
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -10,6 +16,8 @@ const { myAPI } = window;
 
 export const App: React.FC = () => {
   const [url, setUrl] = useState<string>(empty);
+  const [motionUrl, setMotionUrl] = useState<string | null>(null);
+  const [playVideo, setPlayVideo] = useState<boolean>(false);
 
   const mapRef = useRef<HTMLDivElement>(null);
   const mapObj: React.MutableRefObject<L.Map | null> = useRef(null);
@@ -35,13 +43,25 @@ export const App: React.FC = () => {
       const node = mapRef.current;
 
       if (node) {
-        const img = new Image();
-        img.onload = (): void => {
-          const zoom = getZoom(img.width, width, img.height, height);
+        let media: HTMLImageElement | HTMLVideoElement;
+        if (motionUrl && playVideo) {
+          media = document.createElement('video');
+        } else {
+          media = new Image();
+        }
+
+        const onLoaded = (): void => {
+          const mediaHeight =
+            media instanceof HTMLVideoElement
+              ? media.videoHeight
+              : media.height;
+          const mediaWidth =
+            media instanceof HTMLVideoElement ? media.videoWidth : media.width;
+          const zoom = getZoom(mediaWidth, width, mediaHeight, height);
 
           const bounds = new L.LatLngBounds([
-            [img.height * zoom, 0],
-            [0, img.width * zoom],
+            [mediaHeight * zoom, 0],
+            [0, mediaWidth * zoom],
           ]);
 
           if (mapObj.current) {
@@ -65,22 +85,51 @@ export const App: React.FC = () => {
             if (mapObj.current) mapObj.current.setView(center, 0);
           });
 
-          if (img.width < width && img.height < height) {
+          if (media.width < width && media.height < height) {
             const center = bounds.getCenter();
             mapObj.current.setView(center, 0, { animate: false });
           }
 
-          L.imageOverlay(img.src, bounds).addTo(mapObj.current);
+          if (motionUrl && playVideo) {
+            L.videoOverlay(media.src, bounds, {
+              autoplay: true,
+              loop: true,
+            }).addTo(mapObj.current);
+          } else {
+            L.imageOverlay(media.src, bounds).addTo(mapObj.current);
+          }
 
           node.blur();
           node.focus();
         };
 
-        img.src = url;
+        if (motionUrl && playVideo) {
+          media.onloadeddata = onLoaded;
+          media.src = motionUrl;
+        } else {
+          media.onload = onLoaded;
+          media.src = url;
+        }
       }
     },
-    [url]
+    [url, motionUrl, playVideo]
   );
+
+  const setMotionUrlFromFilepath = async (filepath: string): Promise<void> => {
+    if (filepath === empty || filepath === null) {
+      setMotionUrl(null);
+      return;
+    }
+
+    const motionStart = await myAPI.motioncheck(filepath);
+    if (motionStart < 0) {
+      setMotionUrl(null);
+      return;
+    }
+
+    const motionDataUrl = await myAPI.motionAsDataURL(filepath, motionStart);
+    setMotionUrl(motionDataUrl);
+  };
 
   const preventDefault = (e: React.DragEvent<HTMLDivElement>): void => {
     e.preventDefault();
@@ -98,6 +147,7 @@ export const App: React.FC = () => {
 
       const mime = await myAPI.mimecheck(file.path);
       if (mime) {
+        setMotionUrlFromFilepath(file.path);
         setUrl(file.path);
         myAPI.history(file.path);
       }
@@ -109,12 +159,14 @@ export const App: React.FC = () => {
 
     const dir = await myAPI.dirname(url);
     if (!dir) {
+      setMotionUrl(null);
       setUrl(empty);
       return;
     }
 
     const list = await myAPI.readdir(dir);
     if (!list || list.length === 0) {
+      setMotionUrl(null);
       setUrl(empty);
       return;
     }
@@ -123,8 +175,10 @@ export const App: React.FC = () => {
 
     const index = list.indexOf(url);
     if (index === list.length - 1 || index === -1) {
+      setMotionUrlFromFilepath(list[0]);
       setUrl(list[0]);
     } else {
+      setMotionUrlFromFilepath(list[index + 1]);
       setUrl(list[index + 1]);
     }
   }, [url]);
@@ -134,12 +188,14 @@ export const App: React.FC = () => {
 
     const dir = await myAPI.dirname(url);
     if (!dir) {
+      setMotionUrl(null);
       setUrl(empty);
       return;
     }
 
     const list = await myAPI.readdir(dir);
     if (!list || list.length === 0) {
+      setMotionUrl(null);
       setUrl(empty);
       return;
     }
@@ -148,25 +204,36 @@ export const App: React.FC = () => {
 
     const index = list.indexOf(url);
     if (index === 0) {
+      setMotionUrlFromFilepath(list[list.length - 1]);
       setUrl(list[list.length - 1]);
     } else if (index === -1) {
+      setMotionUrlFromFilepath(list[0]);
       setUrl(list[0]);
     } else {
+      setMotionUrlFromFilepath(list[index - 1]);
       setUrl(list[index - 1]);
     }
   }, [url]);
+
+  const motion = useCallback(async (): Promise<void> => {
+    if (!motionUrl) return;
+
+    setPlayVideo(!playVideo);
+  }, [motionUrl, playVideo]);
 
   const remove = useCallback(async (): Promise<void> => {
     if (url === empty) return;
 
     const dir = await myAPI.dirname(url);
     if (!dir) {
+      setMotionUrl(null);
       setUrl(empty);
       return;
     }
 
     const list = await myAPI.readdir(dir);
     if (!list || list.length === 0 || !list.includes(url)) {
+      setMotionUrl(null);
       setUrl(empty);
       return;
     }
@@ -177,13 +244,16 @@ export const App: React.FC = () => {
     const newList = await myAPI.readdir(dir);
 
     if (!newList || newList.length === 0) {
+      setMotionUrl(null);
       setUrl(empty);
       return;
     }
 
     if (index > newList.length - 1) {
+      setMotionUrlFromFilepath(newList[0]);
       setUrl(newList[0]);
     } else {
+      setMotionUrlFromFilepath(newList[index]);
       setUrl(newList[index]);
     }
   }, [url]);
@@ -194,6 +264,7 @@ export const App: React.FC = () => {
 
     const mime = await myAPI.mimecheck(filepath);
     if (mime) {
+      setMotionUrlFromFilepath(filepath);
       setUrl(filepath);
       myAPI.history(filepath);
     }
@@ -204,6 +275,7 @@ export const App: React.FC = () => {
 
     const mime = await myAPI.mimecheck(filepath);
     if (mime) {
+      setMotionUrlFromFilepath(filepath);
       setUrl(filepath);
       myAPI.history(filepath);
     }
@@ -236,6 +308,14 @@ export const App: React.FC = () => {
       myAPI.removeMenuPrev();
     };
   }, [prev]);
+
+  useEffect(() => {
+    myAPI.menuMotion(motion);
+
+    return (): void => {
+      myAPI.removeMenuMotion();
+    };
+  }, [motion]);
 
   useEffect(() => {
     myAPI.menuRemove(remove);
@@ -288,8 +368,10 @@ export const App: React.FC = () => {
         <Float
           onClickOpen={onClickOpen}
           prev={prev}
+          motion={motion}
           next={next}
           remove={remove}
+          motionEnabled={motionUrl !== null}
         />
       </div>
       <div className={url === empty ? 'view init' : 'view'} ref={mapRef} />

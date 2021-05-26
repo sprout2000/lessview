@@ -40,6 +40,9 @@ const gotTheLock = app.requestSingleInstanceLock();
 const isDarwin = process.platform === 'darwin';
 const isDev = process.env.NODE_ENV === 'development';
 
+const motionPattern1 = [0x66, 0x74, 0x79, 0x70];
+const motionPattern2 = [0x6d, 0x70, 0x34, 0x32];
+
 const store = new Store<TypedStore>({
   defaults: {
     darkmode: nativeTheme.shouldUseDarkColors,
@@ -52,12 +55,84 @@ const store = new Store<TypedStore>({
 
 let openfile: string | null = null;
 
+const toggleMotionMenuItem = (enabled: boolean) => {
+  const menu = Menu.getApplicationMenu();
+  if (!menu) {
+    return;
+  }
+  const item = menu.getMenuItemById('motion');
+  if (!item) {
+    return;
+  }
+  item.enabled = enabled;
+};
+
+const filepathToUint8Array = async (filepath: string) => {
+  const buffer = await fs.promises.readFile(filepath, null);
+  return new Uint8Array(buffer);
+};
+
+const motionAsDataURL = async (filepath: string, motionStart: number) => {
+  const buffer = await fs.promises.readFile(filepath, null);
+  const array = new Uint8Array(buffer);
+  if (motionStart === null || motionStart === undefined) {
+    motionStart = await motionPhotoStart(array);
+  }
+  if (motionStart < 0) {
+    return null;
+  }
+  const motionBuffer = Buffer.from(array.subarray(motionStart));
+  return 'data:video/mp4;base64,' + motionBuffer.toString('base64');
+};
+
+const bytePatternIndex = (data: Uint8Array, pattern: number[], start = 0) => {
+  for (var i = start; i < data.length; i++) {
+    let found = true;
+    for (var j = 0; j < pattern.length; j++) {
+      if (data[i + j] !== pattern[j]) {
+        found = false;
+        break;
+      }
+    }
+    if (found) {
+      return i;
+    }
+  }
+  return -1;
+};
+
+const motionPhotoStart = async (data: string | Uint8Array) => {
+  if (typeof data === 'string') {
+    const mimetype = mime.lookup(data);
+    if (!mimetype || mimetype !== 'image/jpeg') {
+      toggleMotionMenuItem(false);
+      return -1;
+    }
+
+    data = await filepathToUint8Array(data);
+  }
+
+  const patternFound = bytePatternIndex(data, motionPattern1);
+  if (patternFound > -1) {
+    const secondPatternFound = bytePatternIndex(
+      data,
+      motionPattern2,
+      patternFound + 4
+    );
+    if (secondPatternFound > -1) {
+      toggleMotionMenuItem(true);
+      return patternFound - 4;
+    }
+  }
+
+  toggleMotionMenuItem(false);
+  return -1;
+};
+
 const checkmime = (filepath: string) => {
   const mimetype = mime.lookup(filepath);
 
-  return !mimetype || !mimetype.match(/bmp|ico|gif|jpeg|png|svg|webp/)
-    ? false
-    : true;
+  return mimetype && mimetype.match(/bmp|ico|gif|jpeg|png|svg|webp/);
 };
 
 const createWindow = () => {
@@ -92,6 +167,17 @@ const createWindow = () => {
   ipcMain.handle('mime-check', (_e: Event, filepath: string) => {
     return checkmime(filepath);
   });
+
+  ipcMain.handle('motion-check', async (_e: Event, filepath: string) => {
+    return await motionPhotoStart(filepath);
+  });
+
+  ipcMain.handle(
+    'motion-as-data-url',
+    async (_e: Event, filepath: string, motionStart: number) => {
+      return await motionAsDataURL(filepath, motionStart);
+    }
+  );
 
   ipcMain.handle('dirname', (_e: Event, filepath: string) => {
     return path.dirname(filepath);
