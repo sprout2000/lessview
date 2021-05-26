@@ -40,6 +40,8 @@ const gotTheLock = app.requestSingleInstanceLock();
 const isDarwin = process.platform === 'darwin';
 const isDev = process.env.NODE_ENV === 'development';
 
+/** Merge the pull request sent by guaycuru */
+/** https://github.com/sprout2000/leafview/pull/228 */
 const motionPattern1 = [0x66, 0x74, 0x79, 0x70];
 const motionPattern2 = [0x6d, 0x70, 0x34, 0x32];
 
@@ -86,9 +88,9 @@ const motionAsDataURL = async (filepath: string, motionStart: number) => {
 };
 
 const bytePatternIndex = (data: Uint8Array, pattern: number[], start = 0) => {
-  for (var i = start; i < data.length; i++) {
+  for (let i = start; i < data.length; i++) {
     let found = true;
-    for (var j = 0; j < pattern.length; j++) {
+    for (let j = 0; j < pattern.length; j++) {
       if (data[i + j] !== pattern[j]) {
         found = false;
         break;

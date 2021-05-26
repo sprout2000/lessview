@@ -88,6 +88,8 @@ export const createMenu = (
           accelerator: 'K',
           click: (): void => win.webContents.send('menu-prev'),
         },
+        /** Merge the pull request sent by guaycuru */
+        /** https://github.com/sprout2000/leafview/pull/228 */
         { type: 'separator' },
         {
           id: 'motion',

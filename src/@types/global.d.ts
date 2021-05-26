@@ -7,6 +7,8 @@ declare global {
 export interface Sandbox {
   mimecheck: (filepath: string) => Promise<boolean>;
 
+  /** Merge the pull request sent by guaycuru */
+  /** https://github.com/sprout2000/leafview/pull/228 */
   motioncheck: (filepath: string) => Promise<number>;
 
   motionAsDataURL: (filepath: string, motionStart: number) => Promise<string>;

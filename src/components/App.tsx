@@ -1,10 +1,4 @@
-import React, {
-  useRef,
-  useCallback,
-  useState,
-  useEffect,
-  createElement,
-} from 'react';
+import React, { useRef, useCallback, useState, useEffect } from 'react';
 
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -16,6 +10,8 @@ const { myAPI } = window;
 
 export const App: React.FC = () => {
   const [url, setUrl] = useState<string>(empty);
+  /** Merge the pull request sent by guaycuru */
+  /** https://github.com/sprout2000/leafview/pull/228 */
   const [motionUrl, setMotionUrl] = useState<string | null>(null);
   const [playVideo, setPlayVideo] = useState<boolean>(false);
 

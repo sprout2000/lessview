@@ -4,6 +4,8 @@ contextBridge.exposeInMainWorld('myAPI', {
   mimecheck: async (filepath: string): Promise<boolean> =>
     await ipcRenderer.invoke('mime-check', filepath),
 
+  /** Merge the pull request sent by guaycuru */
+  /** https://github.com/sprout2000/leafview/pull/228 */
   motioncheck: async (filepath: string): Promise<number> =>
     await ipcRenderer.invoke('motion-check', filepath),
 

@@ -47,6 +47,9 @@ export const Float = (props: Props): JSX.Element => {
           <AiOutlineRightCircle size="2rem" />
         </div>
       </div>
+      {/* Merge the pull request sent by guaycuru
+          https://github.com/sprout2000/leafview/pull/228
+       */}
       {props.motionEnabled ? (
         <div className="motion">
           <div
