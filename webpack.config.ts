@@ -78,7 +78,7 @@ const preload: Configuration = {
 const plugins: Configuration['plugins'] = [
   new MiniCssExtractPlugin(),
   new HtmlWebpackPlugin({
-    template: './src/index.html',
+    template: './src/web/index.html',
     minify: !isDev,
     inject: 'body',
     filename: 'index.html',
@@ -98,7 +98,7 @@ const renderer: Configuration = {
   ...base,
   target: 'web',
   entry: {
-    index: './src/index.tsx',
+    index: './src/web/index.tsx',
   },
   plugins: plugins,
 };
