@@ -25,7 +25,11 @@
   ],
   "main": "dist/main.js",
   "scripts": {
-    "start": "run-s clean build serve",
+    "prestart": "rimraf dist",
+    "start": "run-p start:*",
+    "start:tsc": "tsc -w -p tsconfig.node.json",
+    "start:electron": "wait-on ./dist/index.html && electron .",
+    "start:webpack": "webpack --watch --config webpack.config.dev.ts",
     "serve": "electron .",
     "clean": "rimraf dist release",
     "build": "cross-env NODE_ENV=\"development\" webpack --progress",
