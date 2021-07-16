@@ -40,6 +40,9 @@ const gotTheLock = app.requestSingleInstanceLock();
 const isLinux = process.platform === 'linux';
 const isDarwin = process.platform === 'darwin';
 
+const minWidth = 800;
+const minHeight = isDarwin ? 558 : 602;
+
 import isDev from 'electron-is-dev';
 const execPath =
   process.platform === 'win32'
@@ -60,8 +63,8 @@ const store = new Store<TypedStore>({
     darkmode: nativeTheme.shouldUseDarkColors,
     x: undefined,
     y: undefined,
-    width: 800,
-    height: isDarwin ? 558 : 602,
+    width: minWidth,
+    height: minHeight,
   },
 });
 
@@ -84,8 +87,8 @@ const createWindow = () => {
     width: store.get('width'),
     height: store.get('height'),
     icon: isLinux ? path.join(__dirname, 'icon.png') : undefined,
-    minWidth: 800,
-    minHeight: isDarwin ? 558 : 602,
+    minWidth: minWidth,
+    minHeight: minHeight,
     show: false,
     backgroundColor: store.get('darkmode') ? '#1e1e23' : '#dddddd',
     webPreferences: {
