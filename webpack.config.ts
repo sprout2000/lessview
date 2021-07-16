@@ -63,7 +63,7 @@ const main: Configuration = {
   ...base,
   target: 'electron-main',
   entry: {
-    main: './src/main.ts',
+    main: './src/main.prod.ts',
   },
 };
 
